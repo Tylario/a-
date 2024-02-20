@@ -1,0 +1,414 @@
+<html>
+<head>
+    <title>A* Pathfinding by Tyler Hudson</title>
+</head>
+<style>
+    body, html {
+        height: 100%;
+        margin: 0;
+        background-color: black;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+    }
+
+    .options {
+        position: absolute;
+        top: 5%;
+        margin-top: -30px;
+    }
+
+    .options input[type="number"] {
+        width: 60px; /* Adjust this value as needed */
+        margin: 0 4px; /* Adds a little space around the inputs */
+        color: black; /* Optional: changes text color to black for better readability */
+        background-color: white; /* Optional: changes background color to white for contrast */
+    }
+</style>
+<body>
+    <div class="options">
+        <label for="gridSizeX">Grid Size X:</label>
+        <input type="number" id="gridSizeX" value="35">
+        <label for="gridSizeY">Grid Size Y:</label>
+        <input type="number" id="gridSizeY" value="35">
+        <label for="obstacleChance">Obstacle Chance:</label>
+        <input type="number" id="obstacleChance" value="0.4"><br>
+        <label for="startX">Start X:</label>
+        <input type="number" id="startX" value="0">
+        <label for="startY">Start Y:</label>
+        <input type="number" id="startY" value="0">
+        <label for="endX">End X:</label>
+        <input type="number" id="endX" value="34">
+        <label for="endY">End Y:</label>
+        <input type="number" id="endY" value="34"><br>
+        <button onclick="main()">Run Program</button>
+
+
+    </div>
+</body>
+<script>
+    class Node 
+    {
+        constructor(x, y, type) 
+        {
+            this.x = x;
+            this.y = y;
+            this.type = type; // type 0 is traversable, 1 is not
+            this.g = 999999;
+            this.h = 0;
+            this.parent = null;
+        }
+
+        setG(value) 
+        {
+            this.g = value;
+        }
+
+        setH(value) 
+        {
+            this.h = value;
+        }
+
+        setParent(n) 
+        {        
+            this.parent = n;
+        }
+
+        getParent() 
+        {
+            return this.parent; 
+        }
+
+        getX() 
+        { 
+            return this.x; 
+        }
+
+        getY() {
+            return this.y; 
+        }
+
+        getF()
+        {
+            return this.g + this.h;
+        }
+
+        getG() 
+        { 
+            return this.g; 
+        }   
+
+        getType() 
+        { 
+            return this.type; 
+        }
+
+        setType(value) 
+        { 
+            this.type = value; 
+        }
+
+        equals(n) 
+        {
+             return this.x === n.getX() && this.y === n.getY(); 
+        }
+
+        toString() 
+        {
+             return `Node: ${this.x}_${this.y}`; 
+        }
+    }
+
+    let gridSizeX = 35;
+    let gridSizeY = 35;
+    let obstacleChance = 0.4;
+    let grid = [];
+    let openList = [];
+    let closedList = [];
+    let startNode;
+    let endNode;
+    let startX;
+    let startY;
+    let endX;
+    let endY;
+    let path;
+
+    function getInput()
+    {
+        gridSizeX = parseInt(document.getElementById('gridSizeX').value);
+        gridSizeY = parseInt(document.getElementById('gridSizeY').value);
+        obstacleChance = parseFloat(document.getElementById('obstacleChance').value);
+        startX = parseInt(document.getElementById('startX').value);
+        startY = parseInt(document.getElementById('startY').value);
+        endX = parseInt(document.getElementById('endX').value);
+        endY = parseInt(document.getElementById('endY').value);
+    }
+
+    function main() 
+    {
+        getInput();
+
+        for (let i = 0; i < gridSizeX; i++) 
+        {
+            grid[i] = [];
+            for (let j = 0; j < gridSizeY; j++) 
+            {
+                if (Math.random() < obstacleChance) 
+                {
+                    grid[i][j] = new Node(i, j, 1);
+                } else {
+                    grid[i][j] = new Node(i, j, 0);
+                }
+            }
+        }
+
+        startNode = grid[startX][startY];
+        endNode = grid[endX][endY];
+
+        endNode;
+
+        //calculate h for each node, the manhattan distance from the node to the end node
+        for (let i = 0; i < gridSizeX; i++) 
+        {
+            for (let j = 0; j < gridSizeY; j++) 
+            {
+                grid[i][j].setH(Math.abs(i - endX) + Math.abs(j - endY));
+            }
+        }
+
+        openList = [];
+        closedList = [];
+    
+        /*
+            From Class notes 2/15
+            
+            1. Add start node to open list
+            2. pop best node from open list (best = lowest F score)
+            3. check if current node is the goal
+               4a. if goal, stop searching and generate path
+               4b. if not goal, generate neighbors
+            5. add neighbors to open list
+            6. add current node to closed list
+            7. go back to step 2
+        */
+        //
+
+        
+        // 1. Add start node to open list
+        startNode.setG(0);
+        openList.push(startNode);
+        
+        let goalFound = false;
+
+        while (true)
+        {
+            // 2. pop best node from open list using getBestNode
+            let currentNode = getBestNode();
+            for (let i = openList.length - 1; i >= 0; i--) 
+            {
+                if (openList[i].getX() === currentNode.getX() && openList[i].getY() === currentNode.getY()) 
+                {
+                    openList.splice(i, 1);
+                }
+            }
+
+            // 3. check if current node is the goal
+            if (currentNode.x === endX && currentNode.y === endY) 
+            {
+                goalFound = true;
+                endNode = currentNode;
+                goalFound = true;
+                break;
+            }
+
+            //4b generate neighbors
+            let neighbors = getNeighbors(currentNode);
+
+            for (let neighbor of neighbors) 
+            {
+                // Determine the movement cost to this neighbor
+                let cost = 10; // Default cost for vertical/horizontal moves
+                if (Math.abs(neighbor.x - currentNode.x) + Math.abs(neighbor.y - currentNode.y) === 2) {
+                    // If both X and Y have changed, it's a diagonal move
+                    cost = 14;
+                }
+
+                let tentativeG = currentNode.g + cost;
+
+                // Check if this path to neighbor is better than any previous one
+                if (tentativeG <= neighbor.getG()) {
+                    neighbor.setG(tentativeG);
+
+                    //update the neighbor's parent to the current node as this path is currently the best known path to this neighbor
+                    neighbor.setParent(currentNode);
+                }
+            }
+
+            // 5. add neighbors to open list
+            for (let i = 0; i < neighbors.length; i++) 
+            {
+                if (neighbors[i].getType() === 0) 
+                {
+                    if (!closedList.includes(neighbors[i])) 
+                    {
+                        if (!openList.includes(neighbors[i])) 
+                        {
+                            openList.push(neighbors[i]);
+                        }
+                    }
+                }
+            }
+
+            // 6. add current node to closed list
+            closedList.push(currentNode);
+
+            if (openList.length === 0) 
+            {
+                break;
+            }
+        }
+
+        if (goalFound === false) 
+        {
+            console.log('No path found');
+            main();
+        }
+        else
+        { 
+
+            // 4a. if goal, stop searching and generate path
+            path = [];
+            let tempNode = endNode;
+            while (tempNode !== null) 
+            {
+                path.push(tempNode);
+                tempNode = tempNode.getParent();
+            }
+
+            for (let i = 0; i < path.length; i++) 
+            {
+                grid[path[i].x][path[i].y].setType(2);
+            }
+
+            path.reverse();
+
+            printBoard();
+        }
+    }
+
+    function getBestNode()
+    {
+        //return openList index with lowest F score
+        let bestNode = openList[0];
+        for (let i = 0; i < openList.length; i++) 
+        {
+            if (openList[i].getF() < bestNode.getF()) 
+            {
+                bestNode = openList[i];
+            }
+        }
+        return bestNode;
+    }
+
+    function getNeighbors(node) 
+    {
+        let nodeX = node.getX();
+        let nodeY = node.getY();
+
+        let neighbors = [];
+
+        // Relative positions of potential neighbors including diagonals
+        const directions = [
+            [-1, 0], [1, 0], // Left, Right
+            [0, -1], [0, 1], // Up, Down
+            [-1, -1], [-1, 1], // Diagonal Up-Left, Diagonal Down-Left
+            [1, -1], [1, 1]   // Diagonal Up-Right, Diagonal Down-Right
+        ];
+
+        directions.forEach(([dx, dy]) => {
+            let newX = nodeX + dx, newY = nodeY + dy;
+            if (newX >= 0 && newX < gridSizeX && newY >= 0 && newY < gridSizeY) {
+                let neighbor = grid[newX][newY];
+                // For diagonal movement, check the adjacent squares
+                if (Math.abs(dx) === 1 && Math.abs(dy) === 1) { // This is a diagonal move
+                    let adjacent1 = grid[nodeX + dx][nodeY].getType() === 1;
+                    let adjacent2 = grid[nodeX][nodeY + dy].getType() === 1;
+                    // If both adjacent squares are not obstacles, add the diagonal neighbor
+                    if (!(adjacent1 && adjacent2)) {
+                        if (neighbor.getType() === 0) {
+                            neighbors.push(neighbor);
+                        }
+                    }
+                } else {
+                    // For non-diagonal movement
+                    if (neighbor.getType() === 0) {
+                        neighbors.push(neighbor);
+                    }
+                }
+            }
+        });
+
+        return neighbors;
+    }
+
+
+    function printBoard() {
+        // Remove the existing canvas if it exists
+        const existingCanvas = document.querySelector('canvas');
+        if (existingCanvas) {
+            document.body.removeChild(existingCanvas);
+        }
+
+        // Create a new canvas element
+        const canvas = document.createElement('canvas');
+        document.body.appendChild(canvas);
+
+        // Set canvas size based on window size
+        const maxSize = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8);
+        canvas.width = maxSize;
+        canvas.height = maxSize;
+
+        // Calculate the size of each square on the canvas
+        const squareSize = maxSize / gridSizeX;
+
+        const ctx = canvas.getContext('2d');
+
+        // First, draw all non-path elements (traversable and obstacles)
+        for (let i = 0; i < gridSizeX; i++) {
+            for (let j = 0; j < gridSizeY; j++) {
+                let color = grid[i][j].getType() === 1 ? 'black' : 'white'; // Obstacle or traversable
+                ctx.fillStyle = color;
+                ctx.fillRect(i * squareSize, j * squareSize, squareSize, squareSize);
+            }
+        }
+
+        // Function to draw path nodes one by one
+        function drawPathNode(index) {
+            if (index < path.length) {
+                const node = path[index];
+                ctx.fillStyle = 'red';
+                ctx.fillRect(node.getX() * squareSize, node.getY() * squareSize, squareSize, squareSize);
+                
+                // Set delay for the next node
+                setTimeout(() => drawPathNode(index + 1), 10); // Replace X with desired milliseconds
+            }
+        }
+
+        // Center the canvas
+        canvas.style.position = 'absolute';
+        canvas.style.left = '50%';
+        canvas.style.top = '50%';
+        canvas.style.transform = 'translate(-50%, -50%)';
+
+        // Start drawing the path with a delay
+        drawPathNode(0);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() 
+    {
+        main();
+    });
+</script>
+</html>
